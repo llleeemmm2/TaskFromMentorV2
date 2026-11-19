@@ -3,6 +3,7 @@ package com.example.demo.service;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.repository.UserRepositoryJdbc;
 import com.example.demo.entity.User;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,15 +17,15 @@ public class UserService {
     private final UserRepositoryJdbc userRepositoryJdbc;
     private final UserRepository userRepository;
 
-//    JPA
+    //    JPA
     //Посмотреть как можно сделать более красиво
     //сделал через метод orElseThrow, он возвращает значение, если оно не нул, иначе exceptionSupplier.get()
     public User getByIdJpa(Long id) {
-        if(id == null){
-            throw new RuntimeException();
+        if (id == null) {
+            throw new RuntimeException("Id must not be null when search by id");
         }
         Optional<User> userCandidate = userRepository.findById(id);
-        return userCandidate.orElseThrow();
+        return userCandidate.orElseThrow(() -> new EntityNotFoundException("User with id = %s was not found"));
 //        if (userCandidate.isEmpty()) {
 //            throw new RuntimeException();
 //        }
@@ -32,46 +33,44 @@ public class UserService {
     }
 
     // первая реализация возможна благодаря JpaRepository<User, Long>
-    public List<User> getAll(){
+    public List<User> getAll() {
         return userRepository.findAll();
     }
 
-    public List<User> getAllJpa(){
+    public List<User> getAllJpa() {
         List<User> list = new ArrayList<>();
-        for(User user : userRepository.findAll()){
+        for (User user : userRepository.findAll()) {
             list.add(user);
         }
         return list;
     }
 
-    public void createJpa(User user){
-        if(user.getId() == null) {
+    public void createJpa(User user) {
+        if (user.getId() == null) {
             userRepository.save(user);
         } else {
-            throw new RuntimeException();
+            throw new RuntimeException("User id must be null when creating");
         }
     }
 
-    public void updateJpa(User user){
-        if(user.getId() != null) {
-            Optional<User> userReal = userRepository.findById(user.getId());
-            if(!userReal.isEmpty()){
-                userRepository.save(user);
-            } else {
-                throw new RuntimeException(); }
-        } else {
-            throw new RuntimeException();
+    public void updateJpa(User user) {
+        if (user.getId() == null) {
+            throw new RuntimeException("User id must not be null when updating");
         }
+        if (userRepository.findById(user.getId()).isEmpty()) {
+            throw new RuntimeException("User not found with id: %s");
+        }
+        userRepository.save(user);
     }
 
-public void deleteJpa(Long id){
-        if(id != null){
+    public void deleteJpa(Long id) {
+        if (id != null) {
             userRepository.deleteById(id);
         }
-}
+    }
 
 
-//    JDBC
+    //    JDBC
     public User getByIdJdbc(long id) {
         return userRepositoryJdbc.getUserById(id);
     }
